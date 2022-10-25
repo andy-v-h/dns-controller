@@ -10,6 +10,8 @@ import (
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	gindump "github.com/tpkeeper/gin-dump"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.hollow.sh/toolbox/ginjwt"
 	"go.hollow.sh/toolbox/version"
@@ -17,16 +19,21 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zapio"
 
 	v1router "go.hollow.sh/dnscontroller/pkg/api/v1/router"
 )
 
 // Server contains the HTTP server configuration
+type DB struct {
+	Driver *sqlx.DB
+	Debug  bool
+}
 type Server struct {
 	Logger         *zap.SugaredLogger
 	Listen         string
 	Debug          bool
-	DB             *sqlx.DB
+	DB             DB
 	AuthConfig     ginjwt.AuthConfig
 	TrustedProxies []string
 	TemplateFields map[string]template.Template
@@ -101,12 +108,15 @@ func (s *Server) setup() *gin.Engine {
 	r.GET("/healthz/liveness", s.livenessCheck)
 	r.GET("/healthz/readiness", s.readinessCheck)
 
-	v1Rtr := v1router.New(authMW, s.DB, s.Logger)
+	v1Rtr := v1router.New(authMW, s.DB.Driver, s.Logger)
 
 	// Host our latest version of the API under / in addition to /api/v*
 	latest := r.Group("/")
 	{
 		v1Rtr.Routes(latest)
+		if s.Debug {
+			r.Use(gindump.Dump())
+		}
 	}
 
 	v1 := r.Group(v1router.V1URI)
@@ -137,9 +147,14 @@ func (s *Server) NewServer() *http.Server {
 
 // Run will start the server listening on the specified address
 func (s *Server) Run() error {
-	if !s.Debug {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	gin.SetMode(gin.ReleaseMode)
+
+	boil.DebugMode = s.DB.Debug
+
+	debugWriter := &zapio.Writer{Log: s.Logger.Desugar()}
+	defer debugWriter.Close()
+
+	boil.DebugWriter = debugWriter
 
 	return s.setup().Run(s.Listen)
 }
@@ -155,7 +170,7 @@ func (s *Server) livenessCheck(c *gin.Context) {
 // requests. Currently our only dependency is the DB so we just ensure that it
 // is responding.
 func (s *Server) readinessCheck(c *gin.Context) {
-	if err := s.DB.PingContext(c.Request.Context()); err != nil {
+	if err := s.DB.Driver.PingContext(c.Request.Context()); err != nil {
 		s.Logger.Errorw("readiness check db ping failed", "err", err)
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "DOWN",

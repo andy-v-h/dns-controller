@@ -8,22 +8,40 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.hollow.sh/toolbox/ginjwt"
 	"go.uber.org/zap"
+
+	ax "go.hollow.sh/dnscontroller/pkg/api/v1/answers"
+	rx "go.hollow.sh/dnscontroller/pkg/api/v1/records"
 )
 
 const (
 	// V1URI is the path prefix for all v1 endpoints
 	V1URI = "/api/v1"
 
-	// RecordsURI is the path to the regular record endpoint, called by the
-	// client to .
-	RecordsURI = "/records"
+	// RecordsBaseURI is the path to the regular record
+	// endpoint, called by the client to .
+	RecordsBaseURI = "/records"
 
-	// RecordURI is the path to the endpoint used for
-	// retrieving the stored record for an instance
-	RecordURI = "/records/:record/:recordtype"
+	// RecordsNameTypeURI is the path to the endpoint used
+	// for retrieving the stored record for an instance
+	RecordsNameTypeURI = RecordsBaseURI + "/:name/:type"
 
-	// RecordAnswerURI is for interactions with record's answers
-	RecordAnswerURI = "/records/:record/:recordtype/answers"
+	// RecordAnswersURI is for interactions with record's answers
+	RecordAnswersURI = RecordsNameTypeURI + "/answers"
+
+	// RecordAnswersIDURI is for interactions with record's answers
+	RecordAnswersIDURI = RecordAnswersURI + "/:uuid"
+
+	// AnswersBaseURI is the path to the regular record
+	// endpoint, called by the client to .
+	AnswersBaseURI = "/answers"
+
+	// AnswersIDURI is for interactions with record's answers
+	AnswersIDURI = AnswersBaseURI + "/:uuid"
+
+	// AnswerDetailsURI gets details about the an answer by ID
+	AnswerDetailsURI = AnswersIDURI + "/details"
+
+	// AnswerDetailsIDURI
 
 	// scopePrefix = "dnscontroller"
 )
@@ -37,6 +55,9 @@ type Router struct {
 
 // New builds a Router
 func New(amw *ginjwt.Middleware, db *sqlx.DB, l *zap.SugaredLogger) *Router {
+	ax.SetLogger(l)
+	rx.SetLogger(l)
+
 	return &Router{authMW: amw, db: db, logger: l}
 }
 
@@ -45,14 +66,16 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	// TODO: add auth'd endpoints
 	// authMw := r.AuthMW
 	// rg.POST(RecordURI, authMw.AuthRequired(), authMw.RequiredScopes(upsertScopes("record")))
-	rg.GET(RecordURI, r.getRecord)
-	rg.POST(RecordURI, r.createRecord)
-	rg.DELETE(RecordURI, r.deleteRecord)
+	rg.GET(RecordsNameTypeURI, r.getRecord)
+	rg.POST(RecordsNameTypeURI, r.createRecord)
+	rg.DELETE(RecordsNameTypeURI, r.deleteRecord)
+
+	rg.POST(RecordAnswersURI, r.createRecordAnswers)
 }
 
 // GetRecordPath returns the path used by an instance to fetch Record
 func GetRecordPath() string {
-	return path.Join(V1URI, RecordsURI)
+	return path.Join(V1URI, RecordsNameTypeURI)
 }
 
 // func upsertScopes(items ...string) []string {

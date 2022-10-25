@@ -58,6 +58,20 @@ func createdResponse(c *gin.Context) {
 	c.JSON(http.StatusCreated, r)
 }
 
+func successResponse(c *gin.Context, obj interface{}) {
+	uri := uriWithoutQueryParams(c)
+	r := &recordResponse{
+		Message: "resource created",
+		Links: &recordResponseLinks{
+			Self: &link{Href: uri},
+		},
+		Record: obj,
+	}
+
+	c.Header("Location", uri)
+	c.JSON(http.StatusCreated, r)
+}
+
 func deletedResponse(c *gin.Context) {
 	c.JSON(http.StatusOK, &recordResponse{Message: "resource deleted"})
 }

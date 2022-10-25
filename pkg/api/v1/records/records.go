@@ -1,10 +1,8 @@
-// Package record wraps the CRUD operations for a models.Record
-package record
+// Package records wraps the CRUD operations for a models.Record
+package records
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -13,15 +11,61 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go.hollow.sh/dnscontroller/internal/models"
+	"go.hollow.sh/dnscontroller/pkg/api/v1/answers"
+	"go.uber.org/zap"
 )
 
-func qmRecordNameAndType(rname, rtype string) qm.QueryMod {
-	mods := []qm.QueryMod{}
+var logger *zap.SugaredLogger
 
-	mods = append(mods, qm.Where("record=?", rname))
-	mods = append(mods, qm.Where("record_type=?", rtype))
+// SetLogger initializes the package logger
+func SetLogger(l *zap.SugaredLogger) { logger = l }
 
-	return qm.Expr(mods...)
+func qmRecordNameAndType(rname, rtype string) (qm.QueryMod, error) {
+	if err := isSupportedRecordType(rtype); err != nil {
+		return nil, err
+	}
+
+	mods := []qm.QueryMod{
+		qm.Where("record=?", rname),
+		qm.Where("record_type=?", rtype),
+	}
+
+	return qm.Expr(mods...), nil
+}
+
+func qmAnswerRecordID(id uuid.UUID) qm.QueryMod { return qm.Where("record_id=?", id.String()) }
+
+// GetAnswers fetches the ansers for a record
+func (r *Record) GetAnswers(ctx context.Context, db *sqlx.DB) error {
+	qm := qmAnswerRecordID(r.UUID)
+
+	dbAnswers, err := models.Answers(qm).All(ctx, db)
+	if err != nil {
+		return err
+	}
+
+	// If there are any answers for a record, fetch them
+	numAnswers, err := models.Answers(qm).Count(ctx, db)
+	if err != nil {
+		return err
+	}
+
+	if numAnswers > 0 {
+		logger.Debugw("answers found for record, fetching", "record", r, "count", numAnswers, "db-answers", dbAnswers)
+
+		for i := range dbAnswers {
+			a := &answers.Answer{}
+			if err := a.FromDBModel(ctx, db, dbAnswers[i]); err != nil {
+				return err
+			}
+
+			r.Answers = append(r.Answers, a)
+		}
+	} else {
+		r.Answers = []*answers.Answer{}
+	}
+
+	return nil
 }
 
 // Delete removes a record from the DB
@@ -49,13 +93,11 @@ func (r *Record) Delete(ctx context.Context, db *sqlx.DB) error {
 	return nil
 }
 
-// FindOrCreate is the upsert function
-func (r *Record) FindOrCreate(ctx context.Context, db *sqlx.DB) error {
-	err := r.Find(ctx, db)
-	if errors.Is(err, sql.ErrNoRows) {
-		return r.Create(ctx, db)
-	} else if err != nil {
-		return err
+// CreateOrFind is the upsert function
+func (r *Record) CreateOrFind(ctx context.Context, db *sqlx.DB) error {
+	err := r.Create(ctx, db)
+	if err != nil {
+		return r.Find(ctx, db)
 	}
 
 	return nil
@@ -67,14 +109,17 @@ func (r *Record) Find(ctx context.Context, db *sqlx.DB) error {
 		return err
 	}
 
-	qm := qmRecordNameAndType(r.Name, r.Type)
+	qm, err := qmRecordNameAndType(r.Name, r.Type)
+	if err != nil {
+		return err
+	}
 
 	dbRecord, err := models.Records(qm).One(ctx, db)
 	if err != nil {
 		return err
 	}
 
-	return r.FromDBModel(dbRecord)
+	return r.FromDBModel(ctx, db, dbRecord)
 }
 
 // Create inserts a record
@@ -88,12 +133,11 @@ func (r *Record) Create(ctx context.Context, db *sqlx.DB) error {
 		return err
 	}
 
-	// Set the values back
-	return r.FromDBModel(dbRecord)
+	return r.FromDBModel(ctx, db, dbRecord)
 }
 
 // FromDBModel converts a db type to an api type
-func (r *Record) FromDBModel(dbT *models.Record) error {
+func (r *Record) FromDBModel(ctx context.Context, db *sqlx.DB, dbT *models.Record) error {
 	r.CreatedAt = dbT.CreatedAt
 	r.UpdatedAt = dbT.UpdatedAt
 	r.Name = dbT.Record
@@ -106,7 +150,13 @@ func (r *Record) FromDBModel(dbT *models.Record) error {
 		return err
 	}
 
-	return r.validate()
+	if err := r.validate(); err != nil {
+		return err
+	}
+
+	logger.Debugw("db record conterted to api model", "record", dbT, "api-model", r)
+
+	return r.GetAnswers(ctx, db)
 }
 
 // ToDBModel converts the api type to db type
@@ -116,20 +166,17 @@ func (r *Record) ToDBModel() (*models.Record, error) {
 	}
 
 	dbModel := &models.Record{
-		Record:    r.Name,
-		CreatedAt: r.CreatedAt,
-		UpdatedAt: r.UpdatedAt,
-	}
-
-	if err := isSupportedRecordType(r.Type); err == nil {
-		dbModel.RecordType = r.Type
-	} else {
-		return nil, err
+		Record:     strings.ToLower(r.Name),
+		RecordType: strings.ToUpper(r.Type),
+		CreatedAt:  r.CreatedAt,
+		UpdatedAt:  r.UpdatedAt,
 	}
 
 	if r.UUID.String() != uuid.Nil.String() {
 		dbModel.ID = r.UUID.String()
 	}
+
+	logger.Debugw("api record converted to db model", "record", r, "db-model", dbModel)
 
 	return dbModel, nil
 }
@@ -141,26 +188,19 @@ func (r *Record) GetPath() string {
 
 // NewRecord creates a record from the URL params and validates it
 func NewRecord(c *gin.Context) (*Record, error) {
-	var record *Record
-
 	// Try to get record info from URL params
-	rname := c.Param("record")
-	rtype := c.Param("recordtype")
-
-	record = &Record{
-		Name: rname,
-		Type: rtype,
+	record := &Record{
+		Name: strings.ToLower(c.Param("name")),
+		Type: strings.ToUpper(c.Param("type")),
 	}
+	record.path = record.Name + "/" + record.Type
+
+	record.Answers = []*answers.Answer{}
 
 	// Try to validate
 	if err := record.validate(); err != nil {
 		return nil, err
 	}
-
-	// Sanitize input
-	record.Name = strings.ToLower(record.Name)
-	record.Type = strings.ToUpper(record.Type)
-	record.path = record.Name + "/" + record.Type
 
 	return record, nil
 }
@@ -181,16 +221,12 @@ func (r *Record) validate() error {
 	return nil
 }
 
-// Supported dns record types that are supported.
-func supportedRecordTypes() map[string]bool {
-	return map[string]bool{
+func isSupportedRecordType(rtype string) error {
+	var supportedTypes = map[string]bool{
 		"A":   true,
 		"SRV": true,
 	}
-}
 
-func isSupportedRecordType(rtype string) error {
-	var supportedTypes = supportedRecordTypes()
 	if _, ok := supportedTypes[rtype]; ok {
 		return nil
 	}
