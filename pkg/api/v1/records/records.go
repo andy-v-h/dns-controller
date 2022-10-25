@@ -181,11 +181,6 @@ func (r *Record) ToDBModel() (*models.Record, error) {
 	return dbModel, nil
 }
 
-// GetPath return the name/type
-func (r *Record) GetPath() string {
-	return r.path
-}
-
 // NewRecord creates a record from the URL params and validates it
 func NewRecord(c *gin.Context) (*Record, error) {
 	// Try to get record info from URL params

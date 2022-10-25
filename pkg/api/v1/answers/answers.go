@@ -141,16 +141,16 @@ func (a *Answer) FromDBModel(ctx context.Context, db *sqlx.DB, dbT *models.Answe
 
 // ToDBModel converts the api type to db type
 func (a *Answer) ToDBModel() (*models.Answer, error) {
-	if err := a.validate(); err != nil {
-		return nil, err
-	}
-
 	dbModel := &models.Answer{
 		Target:   strings.ToLower(a.Target),
 		Type:     strings.ToUpper(a.Type),
 		TTL:      int64(a.TTL),
 		OwnerID:  a.OwnerUUID.String(),
 		RecordID: a.RecordUUID.String(),
+	}
+
+	if err := a.validate(); err != nil {
+		return nil, err
 	}
 
 	if a.UUID.String() != uuid.Nil.String() {
@@ -194,5 +194,22 @@ func (a *Answer) validate() error {
 		return ErrorNoAnswerType
 	}
 
+	if err := isSupportedRecordType(a.Type); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func isSupportedRecordType(rtype string) error {
+	var supportedTypes = map[string]bool{
+		"A":   true,
+		"SRV": true,
+	}
+
+	if _, ok := supportedTypes[rtype]; ok {
+		return nil
+	}
+
+	return ErrorUnsupportedType
 }

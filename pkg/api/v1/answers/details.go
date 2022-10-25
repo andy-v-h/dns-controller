@@ -141,10 +141,6 @@ func (d *Detail) FromDBModel(dbT *models.AnswerDetail) error {
 
 // ToDBModel converts the api type to db type
 func (d *Detail) ToDBModel() (*models.AnswerDetail, error) {
-	if err := d.validate(); err != nil {
-		return nil, err
-	}
-
 	dbModel := &models.AnswerDetail{
 		AnswerID:  d.UUID.String(),
 		Port:      null.NewInt64(int64(d.Port), true),
@@ -153,6 +149,10 @@ func (d *Detail) ToDBModel() (*models.AnswerDetail, error) {
 		Protocol:  null.StringFrom(d.Protocol),
 		CreatedAt: d.CreatedAt,
 		UpdatedAt: d.UpdatedAt,
+	}
+
+	if err := d.validate(); err != nil {
+		return nil, err
 	}
 
 	if d.UUID.String() != uuid.Nil.String() {

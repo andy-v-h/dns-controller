@@ -4,7 +4,6 @@ package answers
 import (
 	"io"
 	"net/http"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -19,7 +18,7 @@ import (
 func TestParseAnswers(t *testing.T) {
 	SetLogger(zap.NewNop().Sugar())
 
-	happyPathBody := io.NopCloser(strings.NewReader(`[{"target":"1.1.2.1","type":"a","has_details":false,"owner_id":"bf9455c6-6987-4fdb-96ac-7f3f9dfabbe4","record_id":"52087acc-b0e9-4060-bc48-f37182b6becc"}]`))
+	happyPathBody := io.NopCloser(strings.NewReader(`[{"target":"1.1.2.1","type":"A","has_details":false,"owner_id":"bf9455c6-6987-4fdb-96ac-7f3f9dfabbe4","record_id":"52087acc-b0e9-4060-bc48-f37182b6becc"}]`))
 	badBody := io.NopCloser(strings.NewReader(`bad and boujie`))
 	typeBody := io.NopCloser(strings.NewReader(`[{"target":"1.1.2.1","has_details":false,"owner_id":"bf9455c6-6987-4fdb-96ac-7f3f9dfabbe4","record_id":"52087acc-b0e9-4060-bc48-f37182b6becc"}]`))
 	targetBody := io.NopCloser(strings.NewReader(`[{"has_details":false,"owner_id":"bf9455c6-6987-4fdb-96ac-7f3f9dfabbe4","record_id":"52087acc-b0e9-4060-bc48-f37182b6becc"}]`))
@@ -122,13 +121,14 @@ func TestAnswer_ToDBModel(t *testing.T) {
 		fields  fields
 		want    *models.Answer
 		wantErr bool
+		err     error
 	}{
 		{
 			name: "Happy path",
 			fields: fields{
 				UUID:       uuids["happy path"],
 				Target:     "example.COM",
-				Type:       "SrV",
+				Type:       "SRV",
 				TTL:        10,
 				HasDetails: false,
 				OwnerUUID:  uuids["happy path"],
@@ -148,29 +148,45 @@ func TestAnswer_ToDBModel(t *testing.T) {
 				UpdatedAt:  now,
 			},
 		},
+		{
+			name: "bad type",
+			fields: fields{
+				UUID:       uuids["happy path"],
+				Target:     "example.COM",
+				Type:       "TEAPOT",
+				TTL:        10,
+				HasDetails: false,
+				OwnerUUID:  uuids["happy path"],
+				RecordUUID: uuids["happy path"],
+				CreatedAt:  now,
+				UpdatedAt:  now,
+			},
+			wantErr: true,
+			err:     ErrorUnsupportedType,
+		},
 	}
+
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			a := &Answer{
-				UUID:       tt.fields.UUID,
-				Target:     tt.fields.Target,
-				Type:       tt.fields.Type,
-				TTL:        tt.fields.TTL,
-				HasDetails: tt.fields.HasDetails,
-				Details:    tt.fields.Details,
-				OwnerUUID:  tt.fields.OwnerUUID,
-				RecordUUID: tt.fields.RecordUUID,
-				CreatedAt:  tt.fields.CreatedAt,
-				UpdatedAt:  tt.fields.UpdatedAt,
-			}
-			got, err := a.ToDBModel()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Answer.ToDBModel() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Answer.ToDBModel()\n\t got:\t %v\n\t want:\t %v", got, tt.want)
-			}
-		})
+		a := &Answer{
+			UUID:       tt.fields.UUID,
+			Target:     tt.fields.Target,
+			Type:       tt.fields.Type,
+			TTL:        tt.fields.TTL,
+			HasDetails: tt.fields.HasDetails,
+			Details:    tt.fields.Details,
+			OwnerUUID:  tt.fields.OwnerUUID,
+			RecordUUID: tt.fields.RecordUUID,
+			CreatedAt:  tt.fields.CreatedAt,
+			UpdatedAt:  tt.fields.UpdatedAt,
+		}
+		got, err := a.ToDBModel()
+
+		if tt.wantErr {
+			assert.NotNil(t, err)
+			assert.Error(t, err, tt.err)
+		} else {
+			assert.Nil(t, err)
+			assert.Equal(t, tt.want, got)
+		}
 	}
 }
