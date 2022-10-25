@@ -146,8 +146,9 @@ func (a *Answer) ToDBModel() (*models.Answer, error) {
 	}
 
 	dbModel := &models.Answer{
-		Target:   a.Target,
+		Target:   strings.ToLower(a.Target),
 		Type:     strings.ToUpper(a.Type),
+		TTL:      int64(a.TTL),
 		OwnerID:  a.OwnerUUID.String(),
 		RecordID: a.RecordUUID.String(),
 	}
