@@ -81,7 +81,7 @@ func (r *Router) createRecordAnswers(c *gin.Context) {
 
 	for i := range answers {
 		tempA := answers[i]
-		tempA.RecordUUID = record.UUID
+		tempA.RecordID = record.ID
 
 		preparedAnswers = append(preparedAnswers, tempA)
 

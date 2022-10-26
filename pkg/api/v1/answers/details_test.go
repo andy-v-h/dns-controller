@@ -91,14 +91,14 @@ func TestDetail_ToDBModel(t *testing.T) {
 	}
 	for _, tt := range tests {
 		d := &Detail{
-			UUID:       tt.fields.UUID,
-			AnswerUUID: tt.fields.AnswerUUID,
-			Port:       tt.fields.Port,
-			Priority:   tt.fields.Priority,
-			Protocol:   tt.fields.Protocol,
-			Weight:     tt.fields.Weight,
-			CreatedAt:  tt.fields.CreatedAt,
-			UpdatedAt:  tt.fields.UpdatedAt,
+			ID:        tt.fields.UUID,
+			AnswerID:  tt.fields.AnswerUUID,
+			Port:      tt.fields.Port,
+			Priority:  tt.fields.Priority,
+			Protocol:  tt.fields.Protocol,
+			Weight:    tt.fields.Weight,
+			CreatedAt: tt.fields.CreatedAt,
+			UpdatedAt: tt.fields.UpdatedAt,
 		}
 		got, err := d.ToDBModel()
 

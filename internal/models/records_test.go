@@ -770,7 +770,7 @@ func testRecordsSelect(t *testing.T) {
 }
 
 var (
-	recordDBTypes = map[string]string{`ID`: `uuid`, `Record`: `string`, `RecordType`: `string`, `CreatedAt`: `timestamptz`, `UpdatedAt`: `timestamptz`}
+	recordDBTypes = map[string]string{`ID`: `uuid`, `Record`: `string`, `Type`: `string`, `CreatedAt`: `timestamptz`, `UpdatedAt`: `timestamptz`}
 	_             = bytes.MinRead
 )
 

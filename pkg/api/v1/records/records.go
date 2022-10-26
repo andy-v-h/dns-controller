@@ -37,7 +37,7 @@ func qmAnswerRecordID(id uuid.UUID) qm.QueryMod { return qm.Where("record_id=?",
 
 // GetAnswers fetches the ansers for a record
 func (r *Record) GetAnswers(ctx context.Context, db *sqlx.DB) error {
-	qm := qmAnswerRecordID(r.UUID)
+	qm := qmAnswerRecordID(r.ID)
 
 	dbAnswers, err := models.Answers(qm).All(ctx, db)
 	if err != nil {
@@ -141,11 +141,11 @@ func (r *Record) FromDBModel(ctx context.Context, db *sqlx.DB, dbT *models.Recor
 	r.CreatedAt = dbT.CreatedAt
 	r.UpdatedAt = dbT.UpdatedAt
 	r.Name = dbT.Record
-	r.Type = dbT.RecordType
+	r.Type = dbT.Type
 
 	var err error
 
-	r.UUID, err = uuid.Parse(dbT.ID)
+	r.ID, err = uuid.Parse(dbT.ID)
 	if err != nil {
 		return err
 	}
@@ -166,14 +166,14 @@ func (r *Record) ToDBModel() (*models.Record, error) {
 	}
 
 	dbModel := &models.Record{
-		Record:     strings.ToLower(r.Name),
-		RecordType: strings.ToUpper(r.Type),
-		CreatedAt:  r.CreatedAt,
-		UpdatedAt:  r.UpdatedAt,
+		Record:    strings.ToLower(r.Name),
+		Type:      strings.ToUpper(r.Type),
+		CreatedAt: r.CreatedAt,
+		UpdatedAt: r.UpdatedAt,
 	}
 
-	if r.UUID.String() != uuid.Nil.String() {
-		dbModel.ID = r.UUID.String()
+	if r.ID.String() != uuid.Nil.String() {
+		dbModel.ID = r.ID.String()
 	}
 
 	logger.Debugw("api record converted to db model", "record", r, "db-model", dbModel)

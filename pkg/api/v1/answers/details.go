@@ -24,7 +24,7 @@ func (a *Answer) GetDetails(ctx context.Context, db *sqlx.DB) error {
 		return ErrorNoAnswerDetail
 	}
 
-	qm := qmAnswerDetailAnswerID(a.UUID)
+	qm := qmAnswerDetailAnswerID(a.ID)
 
 	dbModels, err := models.AnswerDetails(qm).All(ctx, db)
 	if err != nil {
@@ -86,7 +86,7 @@ func (d *Detail) Find(ctx context.Context, db *sqlx.DB) error {
 		return err
 	}
 
-	qm := qmAnswerDetailAnswerID(d.AnswerUUID)
+	qm := qmAnswerDetailAnswerID(d.AnswerID)
 
 	dbDetail, err := models.AnswerDetails(qm).One(ctx, db)
 	if err != nil {
@@ -119,12 +119,12 @@ func (d *Detail) FromDBModel(dbT *models.AnswerDetail) error {
 
 	var err error
 
-	d.UUID, err = uuid.Parse(dbT.ID)
+	d.ID, err = uuid.Parse(dbT.ID)
 	if err != nil {
 		return err
 	}
 
-	d.AnswerUUID, err = uuid.Parse(dbT.AnswerID)
+	d.AnswerID, err = uuid.Parse(dbT.AnswerID)
 	if err != nil {
 		return err
 	}
@@ -142,10 +142,10 @@ func (d *Detail) FromDBModel(dbT *models.AnswerDetail) error {
 // ToDBModel converts the api type to db type
 func (d *Detail) ToDBModel() (*models.AnswerDetail, error) {
 	dbModel := &models.AnswerDetail{
-		AnswerID:  d.UUID.String(),
-		Port:      null.NewInt64(int64(d.Port), true),
-		Priority:  null.NewInt64(int64(d.Priority), true),
-		Weight:    null.NewInt64(int64(d.Weight), true),
+		AnswerID:  d.ID.String(),
+		Port:      null.Int64From(int64(d.Port)),
+		Priority:  null.Int64From(int64(d.Priority)),
+		Weight:    null.Int64From(int64(d.Weight)),
 		Protocol:  null.StringFrom(d.Protocol),
 		CreatedAt: d.CreatedAt,
 		UpdatedAt: d.UpdatedAt,
@@ -155,19 +155,19 @@ func (d *Detail) ToDBModel() (*models.AnswerDetail, error) {
 		return nil, err
 	}
 
-	if d.UUID.String() != uuid.Nil.String() {
-		dbModel.ID = d.UUID.String()
+	if d.ID.String() != uuid.Nil.String() {
+		dbModel.ID = d.ID.String()
 	}
 
 	return dbModel, nil
 }
 
 func (d *Detail) validate() error {
-	if d.UUID.String() == uuid.Nil.String() {
+	if d.ID.String() == uuid.Nil.String() {
 		return ErrorNoAnswerDetailID
 	}
 
-	if d.AnswerUUID.String() == uuid.Nil.String() {
+	if d.AnswerID.String() == uuid.Nil.String() {
 		return ErrorNoAnswerDetailAnswerID
 	}
 

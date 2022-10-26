@@ -78,7 +78,7 @@ func (a *Answer) Find(ctx context.Context, db *sqlx.DB) error {
 		return err
 	}
 
-	qm := qmAnswerTargetAndTypeAndRecord(a.Target, a.Type, a.RecordUUID, a.OwnerUUID)
+	qm := qmAnswerTargetAndTypeAndRecord(a.Target, a.Type, a.RecordID, a.OwnerID)
 
 	dbAnswer, err := models.Answers(qm).One(ctx, db)
 	if err != nil {
@@ -113,17 +113,17 @@ func (a *Answer) FromDBModel(ctx context.Context, db *sqlx.DB, dbT *models.Answe
 
 	var err error
 
-	a.OwnerUUID, err = uuid.Parse(dbT.OwnerID)
+	a.OwnerID, err = uuid.Parse(dbT.OwnerID)
 	if err != nil {
 		return err
 	}
 
-	a.RecordUUID, err = uuid.Parse(dbT.RecordID)
+	a.RecordID, err = uuid.Parse(dbT.RecordID)
 	if err != nil {
 		return err
 	}
 
-	a.UUID, err = uuid.Parse(dbT.ID)
+	a.ID, err = uuid.Parse(dbT.ID)
 	if err != nil {
 		return err
 	}
@@ -145,16 +145,16 @@ func (a *Answer) ToDBModel() (*models.Answer, error) {
 		Target:   strings.ToLower(a.Target),
 		Type:     strings.ToUpper(a.Type),
 		TTL:      int64(a.TTL),
-		OwnerID:  a.OwnerUUID.String(),
-		RecordID: a.RecordUUID.String(),
+		OwnerID:  a.OwnerID.String(),
+		RecordID: a.RecordID.String(),
 	}
 
 	if err := a.validate(); err != nil {
 		return nil, err
 	}
 
-	if a.UUID.String() != uuid.Nil.String() {
-		dbModel.ID = a.UUID.String()
+	if a.ID.String() != uuid.Nil.String() {
+		dbModel.ID = a.ID.String()
 	}
 
 	logger.Debugw("api answer converted to db model", "answer", a, "db-model", dbModel)

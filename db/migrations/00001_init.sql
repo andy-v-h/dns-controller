@@ -13,10 +13,10 @@ updated_at TIMESTAMPTZ NOT NULL
 CREATE TABLE records (
 id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
 record STRING NOT NULL,
-record_type STRING NOT NULL,
+type STRING NOT NULL,
 created_at TIMESTAMPTZ NOT NULL,
 updated_at TIMESTAMPTZ NOT NULL,
-UNIQUE INDEX idx_record_record_type (record, record_type)
+UNIQUE INDEX idx_record_record_type (record, type)
 );
 
 CREATE TABLE answers (

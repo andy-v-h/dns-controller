@@ -23,58 +23,58 @@ import (
 
 // Record is an object representing the database table.
 type Record struct {
-	ID         string    `boil:"id" json:"id" toml:"id" yaml:"id"`
-	Record     string    `boil:"record" json:"record" toml:"record" yaml:"record"`
-	RecordType string    `boil:"record_type" json:"record_type" toml:"record_type" yaml:"record_type"`
-	CreatedAt  time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt  time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	ID        string    `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Record    string    `boil:"record" json:"record" toml:"record" yaml:"record"`
+	Type      string    `boil:"type" json:"type" toml:"type" yaml:"type"`
+	CreatedAt time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 
 	R *recordR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L recordL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var RecordColumns = struct {
-	ID         string
-	Record     string
-	RecordType string
-	CreatedAt  string
-	UpdatedAt  string
+	ID        string
+	Record    string
+	Type      string
+	CreatedAt string
+	UpdatedAt string
 }{
-	ID:         "id",
-	Record:     "record",
-	RecordType: "record_type",
-	CreatedAt:  "created_at",
-	UpdatedAt:  "updated_at",
+	ID:        "id",
+	Record:    "record",
+	Type:      "type",
+	CreatedAt: "created_at",
+	UpdatedAt: "updated_at",
 }
 
 var RecordTableColumns = struct {
-	ID         string
-	Record     string
-	RecordType string
-	CreatedAt  string
-	UpdatedAt  string
+	ID        string
+	Record    string
+	Type      string
+	CreatedAt string
+	UpdatedAt string
 }{
-	ID:         "records.id",
-	Record:     "records.record",
-	RecordType: "records.record_type",
-	CreatedAt:  "records.created_at",
-	UpdatedAt:  "records.updated_at",
+	ID:        "records.id",
+	Record:    "records.record",
+	Type:      "records.type",
+	CreatedAt: "records.created_at",
+	UpdatedAt: "records.updated_at",
 }
 
 // Generated where
 
 var RecordWhere = struct {
-	ID         whereHelperstring
-	Record     whereHelperstring
-	RecordType whereHelperstring
-	CreatedAt  whereHelpertime_Time
-	UpdatedAt  whereHelpertime_Time
+	ID        whereHelperstring
+	Record    whereHelperstring
+	Type      whereHelperstring
+	CreatedAt whereHelpertime_Time
+	UpdatedAt whereHelpertime_Time
 }{
-	ID:         whereHelperstring{field: "\"records\".\"id\""},
-	Record:     whereHelperstring{field: "\"records\".\"record\""},
-	RecordType: whereHelperstring{field: "\"records\".\"record_type\""},
-	CreatedAt:  whereHelpertime_Time{field: "\"records\".\"created_at\""},
-	UpdatedAt:  whereHelpertime_Time{field: "\"records\".\"updated_at\""},
+	ID:        whereHelperstring{field: "\"records\".\"id\""},
+	Record:    whereHelperstring{field: "\"records\".\"record\""},
+	Type:      whereHelperstring{field: "\"records\".\"type\""},
+	CreatedAt: whereHelpertime_Time{field: "\"records\".\"created_at\""},
+	UpdatedAt: whereHelpertime_Time{field: "\"records\".\"updated_at\""},
 }
 
 // RecordRels is where relationship names are stored.
@@ -105,8 +105,8 @@ func (r *recordR) GetAnswers() AnswerSlice {
 type recordL struct{}
 
 var (
-	recordAllColumns            = []string{"id", "record", "record_type", "created_at", "updated_at"}
-	recordColumnsWithoutDefault = []string{"record", "record_type", "created_at", "updated_at"}
+	recordAllColumns            = []string{"id", "record", "type", "created_at", "updated_at"}
+	recordColumnsWithoutDefault = []string{"record", "type", "created_at", "updated_at"}
 	recordColumnsWithDefault    = []string{"id"}
 	recordPrimaryKeyColumns     = []string{"id"}
 	recordGeneratedColumns      = []string{}

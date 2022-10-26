@@ -14,7 +14,7 @@ type Record struct {
 	Type      string            `json:"record_type"`
 	Answers   []*answers.Answer `json:"answers,omitempty"`
 	path      string
-	UUID      uuid.UUID `json:"uuid"`
+	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

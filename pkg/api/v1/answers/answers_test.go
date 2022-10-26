@@ -168,14 +168,14 @@ func TestAnswer_ToDBModel(t *testing.T) {
 
 	for _, tt := range tests {
 		a := &Answer{
-			UUID:       tt.fields.UUID,
+			ID:         tt.fields.UUID,
 			Target:     tt.fields.Target,
 			Type:       tt.fields.Type,
 			TTL:        tt.fields.TTL,
 			HasDetails: tt.fields.HasDetails,
 			Details:    tt.fields.Details,
-			OwnerUUID:  tt.fields.OwnerUUID,
-			RecordUUID: tt.fields.RecordUUID,
+			OwnerID:    tt.fields.OwnerUUID,
+			RecordID:   tt.fields.RecordUUID,
 			CreatedAt:  tt.fields.CreatedAt,
 			UpdatedAt:  tt.fields.UpdatedAt,
 		}

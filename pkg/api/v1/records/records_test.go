@@ -58,7 +58,7 @@ func TestNewRecord(t *testing.T) {
 				Type:      types,
 				Answers:   []*answers.Answer{},
 				path:      "example.com/" + types,
-				UUID:      u,
+				ID:        u,
 				CreatedAt: ts,
 				UpdatedAt: ts,
 			},
@@ -164,11 +164,11 @@ func TestRecord_ToDBModel(t *testing.T) {
 				UpdatedAt: now,
 			},
 			want: &models.Record{
-				ID:         uuids["happy path"].String(),
-				Record:     "example.com",
-				RecordType: "A",
-				UpdatedAt:  now,
-				CreatedAt:  now,
+				ID:        uuids["happy path"].String(),
+				Record:    "example.com",
+				Type:      "A",
+				UpdatedAt: now,
+				CreatedAt: now,
 			},
 		},
 		{
@@ -196,13 +196,16 @@ func TestRecord_ToDBModel(t *testing.T) {
 			err:     ErrorNoRecordType,
 		},
 	}
+
+	SetLogger(zap.NewNop().Sugar())
+
 	for _, tt := range tests {
 		r := &Record{
 			Name:      tt.fields.Name,
 			Type:      tt.fields.Type,
 			Answers:   tt.fields.Answers,
 			path:      tt.fields.path,
-			UUID:      tt.fields.UUID,
+			ID:        tt.fields.UUID,
 			CreatedAt: tt.fields.CreatedAt,
 			UpdatedAt: tt.fields.UpdatedAt,
 		}
